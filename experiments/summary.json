@@ -1,0 +1,67 @@
+[
+  {
+    "experiment": 0,
+    "config": {
+      "train_file": 2,
+      "eval_file": 2,
+      "lr": 0.0001,
+      "batch_size": 32,
+      "epoch": 100,
+      "f": 5
+    },
+    "best_psnr": 36.3804931640625,
+    "best_epoch": 90
+  },
+  {
+    "experiment": 1,
+    "config": {
+      "train_file": 4,
+      "eval_file": 4,
+      "lr": 0.0001,
+      "batch_size": 32,
+      "epoch": 100,
+      "f": 5
+    },
+    "best_psnr": 30.161224365234375,
+    "best_epoch": 85
+  },
+  {
+    "experiment": 2,
+    "config": {
+      "train_file": 4,
+      "eval_file": 4,
+      "lr": 0.001,
+      "batch_size": 32,
+      "epoch": 100,
+      "f": 5
+    },
+    "best_psnr": 30.16788673400879,
+    "best_epoch": 45
+  },
+  {
+    "experiment": 3,
+    "config": {
+      "train_file": 4,
+      "eval_file": 4,
+      "lr": 1e-05,
+      "batch_size": 32,
+      "epoch": 100,
+      "f": 5
+    },
+    "best_psnr": 29.878591537475586,
+    "best_epoch": 95
+  },
+  {
+    "experiment": 4,
+    "config": {
+      "train_file": 4,
+      "eval_file": 4,
+      "lr": 0.0001,
+      "batch_size": 64,
+      "epoch": 100,
+      "f": 5
+    },
+    "best_psnr": 30.11714744567871,
+    "best_epoch": 85
+  }
+]

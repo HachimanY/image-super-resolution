@@ -8,6 +8,11 @@ import numpy as np
 import PIL.Image as pil_image
 import h5py
 import glob
+import json
+import os
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 def prepare_datasets(args):
@@ -193,4 +198,125 @@ def test(model,test_dataloader,epoch_psnr,device,epoch):
     print(f' PSNR = {PSNR} of epoch {epoch}')
     print('\n-----end test-----\n')
     return PSNR
+
+
+def plot_training_curves(history_path, save_path=None):
+    with open(history_path, 'r') as f:
+        history = json.load(f)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    ax1.plot(history['train_loss'], color='blue')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss (MSE)')
+    ax1.set_title('Training Loss')
+    ax1.grid(True, alpha=0.3)
+
+    ax2.plot(history['test_epoch'], history['test_psnr'], color='green', marker='o', markersize=3)
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('PSNR (dB)')
+    ax2.set_title('Test PSNR')
+    ax2.grid(True, alpha=0.3)
+
+    config = history.get('config', {})
+    fig.suptitle(f"lr={config.get('lr', '?')}, batch={config.get('batch_size', '?')}, "
+                 f"best_psnr={history.get('best_psnr', '?'):.2f}dB @ epoch {history.get('best_epoch', '?')}",
+                 fontsize=11)
+    plt.tight_layout()
+
+    if save_path is None:
+        save_path = history_path.replace('.json', '_curves.png')
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f'Training curves saved to {save_path}')
+    return save_path
+
+
+def generate_comparison_image(lr_image_path, sr_image, scale, save_path=None):
+    lr_img = pil_image.open(lr_image_path).convert('RGB')
+
+    w = (lr_img.width // scale) * scale
+    h = (lr_img.height // scale) * scale
+    lr_img = lr_img.resize((w, h), resample=pil_image.BICUBIC)
+
+    lr_small = lr_img.resize((w // scale, h // scale), resample=pil_image.BICUBIC)
+    bicubic_img = lr_small.resize((w, h), resample=pil_image.BICUBIC)
+
+    if isinstance(sr_image, np.ndarray):
+        sr_img = pil_image.fromarray(sr_image)
+    else:
+        sr_img = sr_image
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+
+    axes[0].imshow(lr_small)
+    axes[0].set_title(f'Low Resolution ({lr_small.width}x{lr_small.height})')
+    axes[0].axis('off')
+
+    axes[1].imshow(bicubic_img)
+    axes[1].set_title(f'Bicubic Interpolation ({bicubic_img.width}x{bicubic_img.height})')
+    axes[1].axis('off')
+
+    axes[2].imshow(sr_img)
+    axes[2].set_title(f'SRCNN ({sr_img.width}x{sr_img.height})')
+    axes[2].axis('off')
+
+    plt.tight_layout()
+
+    if save_path is None:
+        base, ext = os.path.splitext(lr_image_path)
+        save_path = f'{base}_comparison.png'
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f'Comparison image saved to {save_path}')
+    return save_path
+
+
+def compare_experiments(history_paths, save_path='./experiment_comparison.png'):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+
+    results = []
+    for hp in history_paths:
+        with open(hp, 'r') as f:
+            h = json.load(f)
+        config = h.get('config', {})
+        label = f"lr={config.get('lr')}, bs={config.get('batch_size')}"
+        results.append({
+            'label': label,
+            'best_psnr': h.get('best_psnr', 0),
+            'best_epoch': h.get('best_epoch', 0),
+            'loss': h['train_loss'],
+            'test_epoch': h['test_epoch'],
+            'test_psnr': h['test_psnr'],
+        })
+
+    for r in results:
+        ax1.plot(r['loss'], label=r['label'])
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss (MSE)')
+    ax1.set_title('Training Loss Comparison')
+    ax1.legend(fontsize=8)
+    ax1.grid(True, alpha=0.3)
+
+    for r in results:
+        ax2.plot(r['test_epoch'], r['test_psnr'], marker='o', markersize=3, label=r['label'])
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('PSNR (dB)')
+    ax2.set_title('Test PSNR Comparison')
+    ax2.legend(fontsize=8)
+    ax2.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f'Experiment comparison saved to {save_path}')
+
+    print('\n' + '=' * 60)
+    print(f'{"Config":<40} {"Best PSNR":>10} {"Best Epoch":>11}')
+    print('=' * 60)
+    for r in sorted(results, key=lambda x: x['best_psnr'], reverse=True):
+        print(f'{r["label"]:<40} {r["best_psnr"]:>10.2f} {r["best_epoch"]:>11}')
+    print('=' * 60)
+
+    return save_path
 

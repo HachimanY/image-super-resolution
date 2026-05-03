@@ -1,14 +1,14 @@
 # SRCNN 图像超分辨率
 
-## 项目简介
+## 一、项目简介
 
 本项目复现了 2014 年 Dong 等人的经典论文 **"Learning a Deep Convolutional Network for Image Super-Resolution"**，基于卷积神经网络（CNN）实现图像超分辨率重建，将低分辨率图像映射为高分辨率图像。
 
 - [论文 PDF 下载](https://github.com/luzhixing12345/image-super-resolution/releases/download/v0.0.2/Learning.a.Deep.Convolutional.Network.for.Image.Super-Resolution.pdf)
 
 | 低分辨率 | 高分辨率 |
-|:--:|:--:|
-| <img src="https://raw.githubusercontent.com/learner-lu/picbed/master/QQ%E6%88%AA%E5%9B%BE20220112003016.png"> | <img src="https://raw.githubusercontent.com/learner-lu/picbed/master/2.png"> |
+| :--: | :--: |
+| <img src="https://raw.githubusercontent.com/learner-lu/picbed/master/QQ%E6%88%AA%E5%9B%BE20220112003016.png" alt="低分辨率示例"> | <img src="https://raw.githubusercontent.com/learner-lu/picbed/master/2.png" alt="高分辨率示例"> |
 
 ## 参考资料
 
@@ -18,22 +18,45 @@
 
 ---
 
-## 环境安装
+## 二、环境安装
 
-- Python 3.x
-- PyTorch（根据 CUDA 版本单独安装：<https://pytorch.org/get-started/locally/>）
+### 2.1 安装 Python
+
+需要 Python 3.x 环境。
+
+### 2.2 安装 PyTorch
+
+根据你的 CUDA 版本选择对应的 PyTorch 安装方式，访问：<https://pytorch.org/get-started/locally/>
 
 ```bash
+# 示例（CUDA 11.8）
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# 示例（CPU 版本）
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+```
+
+### 2.3 安装项目依赖
+
+```bash
+cd image-super-resolution
 pip install -r requirements.txt
 ```
 
-依赖项：`numpy`、`h5py`、`opencv-python`、`matplotlib`
+依赖项清单：
+
+| 包名 | 用途 |
+| ---- | ---- |
+| `numpy` | 数值计算 |
+| `h5py` | 读取 HDF5 格式数据集 |
+| `opencv-python` | 图像处理 |
+| `matplotlib` | 绘制训练曲线和对比图 |
 
 ---
 
-## 项目结构
+## 三、项目结构
 
-```
+```text
 image-super-resolution/
   train.py          ← 训练入口
   use.py            ← 推理入口（支持 --compare 生成对比图）
@@ -49,7 +72,9 @@ image-super-resolution/
 
 ---
 
-## 第一步：准备数据集
+## 四、准备数据集
+
+### 4.1 下载数据集
 
 下载标准 HDF5 数据集，放入 `./datasets/` 目录。
 
@@ -62,13 +87,21 @@ image-super-resolution/
 | Set5 | x3 | 测试集 | [下载](https://github.com/learner-lu/image-super-resolution/releases/download/v0.0.1/Set5_x3.h5) |
 | Set5 | x4 | 测试集 | [下载](https://github.com/learner-lu/image-super-resolution/releases/download/v0.0.1/Set5_x4.h5) |
 
-下载相同放大倍数的 91-image 和 Set5 各一个，放入 `./datasets/` 目录，例如 `./datasets/91-image_x2.h5` 和 `./datasets/Set5_x2.h5`。
+### 4.2 放置数据集
+
+下载相同放大倍数的 91-image（训练集）和 Set5（测试集）各一个，放入 `./datasets/` 目录：
+
+```text
+datasets/
+  91-image_x2.h5    ← 训练集
+  Set5_x2.h5        ← 测试集
+```
 
 ---
 
-## 第二步：训练模型
+## 五、训练模型
 
-### 快速开始（默认参数）
+### 5.1 快速开始（默认参数）
 
 ```bash
 python train.py
@@ -76,7 +109,7 @@ python train.py
 
 默认配置：x4 放大、学习率 1e-4、batch_size=32、训练 100 轮。
 
-### 自定义参数
+### 5.2 自定义参数
 
 ```bash
 python train.py \
@@ -90,7 +123,7 @@ python train.py \
   --save-history ./model/train_history.json
 ```
 
-### 参数说明
+### 5.3 训练参数说明
 
 | 参数 | 默认值 | 说明 |
 | ---- | ------ | ---- |
@@ -104,63 +137,82 @@ python train.py \
 | `--model-dir` | `./model` | 模型保存目录 |
 | `--save-history` | `./model/train_history.json` | 训练历史保存路径 |
 
-### 训练输出
+### 5.4 训练输出
 
 - 最佳模型权重：`./model/best.pth`
 - 训练历史记录：`./model/train_history.json`（包含每轮 loss 和 PSNR）
 
 ---
 
-## 第三步：参数对比实验
+## 六、参数对比实验
 
-自动运行多组不同参数配置，对比重建效果。
+自动运行多组不同参数配置，对比不同学习率、放大倍数、批大小下的重建效果。
 
-### 快速验证（每组 20 轮）
+### 6.1 快速验证（每组 20 轮）
 
 ```bash
 python experiment.py --quick
 ```
 
-### 完整实验
+### 6.2 完整实验
 
 ```bash
 python experiment.py --epochs 100
 ```
 
-### 自定义输出目录
+### 6.3 自定义输出目录
 
 ```bash
 python experiment.py --epochs 100 --output-dir ./my_experiments
 ```
 
-### 内置实验配置
+### 6.4 仅从已有数据画图（跳过训练）
 
-| 编号 | 放大倍数 | 学习率 | 批大小 |
-| ---- | -------- | ------ | ------ |
-| 0 | x2 | 1e-4 | 32 |
-| 1 | x4 | 1e-4 | 32 |
-| 2 | x4 | 1e-3 | 32 |
-| 3 | x4 | 1e-5 | 32 |
-| 4 | x4 | 1e-4 | 64 |
+如果 `./experiments/` 目录下已有之前训练好的 JSON 数据，可以直接生成图表，无需重新训练：
 
-### 实验输出
+```bash
+python experiment.py --plot-only
+```
+
+### 6.5 实验参数说明
+
+| 参数 | 默认值 | 说明 |
+| ---- | ------ | ---- |
+| `--output-dir` | `./experiments` | 实验结果输出目录 |
+| `--epochs` | 无 | 统一覆盖所有实验的训练轮数 |
+| `--quick` | 关闭 | 快速模式，每组仅训练 20 轮 |
+| `--plot-only` | 关闭 | 仅画图，跳过训练 |
+
+### 6.6 内置实验配置
+
+脚本内置 5 组实验配置，用于对比不同参数的影响：
+
+| 编号 | 放大倍数 | 学习率 | 批大小 | 对比目的 |
+| ---- | -------- | ------ | ------ | -------- |
+| 0 | x2 | 1e-4 | 32 | 不同放大倍数 |
+| 1 | x4 | 1e-4 | 32 | 基准配置 |
+| 2 | x4 | 1e-3 | 32 | 较大学习率 |
+| 3 | x4 | 1e-5 | 32 | 较小学习率 |
+| 4 | x4 | 1e-4 | 64 | 较大批大小 |
+
+### 6.7 实验输出
 
 所有结果保存在 `./experiments/` 目录：
 
-```
+```text
 experiments/
   exp_0.json              ← 实验 0 的训练历史
   exp_0_curves.png        ← 实验 0 的训练曲线图
   exp_1.json
   exp_1_curves.png
   ...
-  comparison.png           ← 多组实验叠加对比图
+  comparison.png           ← 多组实验叠加对比图（带实验序号）
   summary.json             ← 所有实验排名汇总
 ```
 
 终端输出排名表：
 
-```
+```text
 ======================================================================
 EXPERIMENT RESULTS SUMMARY
 ======================================================================
@@ -174,7 +226,7 @@ EXPERIMENT RESULTS SUMMARY
 
 ---
 
-## 第四步：下载预训练模型（可选）
+## 七、下载预训练模型（可选）
 
 如果你已经自己训练了模型，可跳过此步。
 
@@ -185,21 +237,27 @@ EXPERIMENT RESULTS SUMMARY
 
 ---
 
-## 第五步：超分辨率推理
+## 八、超分辨率推理
 
-### 基本用法
+### 8.1 基本用法
 
 ```bash
 python use.py --image path/to/image.jpg --scale 2
 ```
 
-### 生成对比图（低分辨率 / 双三次插值 / SRCNN 三宫格）
+输出文件保存为同目录下的 `image_srcnn_x2.jpg`。
+
+### 8.2 生成对比图
+
+使用 `--compare` 参数生成低分辨率 / 双三次插值 / SRCNN 三宫格对比图：
 
 ```bash
 python use.py --image path/to/image.jpg --scale 2 --compare
 ```
 
-### 推理参数
+对比图保存为 `image_comparison.png`。
+
+### 8.3 推理参数说明
 
 | 参数 | 默认值 | 说明 |
 | ---- | ------ | ---- |
@@ -208,14 +266,16 @@ python use.py --image path/to/image.jpg --scale 2 --compare
 | `--weights-file` | `./model/best.pth` | 模型权重路径 |
 | `--compare` | 关闭 | 生成三宫格对比图 |
 
-### 输出文件
+### 8.4 输出文件
 
-- 超分辨率结果：`image_srcnn_x2.jpg`
-- 对比图：`image_comparison.png`（使用 `--compare` 时生成）
+| 文件 | 说明 |
+| ---- | ---- |
+| `image_srcnn_x2.jpg` | 超分辨率处理结果 |
+| `image_comparison.png` | 三宫格对比图（使用 `--compare` 时生成） |
 
 ---
 
-## 第六步：GUI 演示系统
+## 九、GUI 演示系统
 
 ```bash
 python demo.py
@@ -231,7 +291,7 @@ python demo.py
 
 ---
 
-## 常见问题
+## 十、常见问题
 
 ### OSError: Unable to open file（HDF5 文件锁错误）
 
@@ -256,12 +316,12 @@ python train.py --num-workers 0
 
 ---
 
-## 总结
+## 十一、总结
 
 本项目实现了完整的图像超分辨率处理流程，包含：
 
 - **模型训练** — 可配置参数，自动记录训练历史
-- **参数对比实验** — 自动运行多组配置，生成排名汇总
+- **参数对比实验** — 自动运行多组配置，生成排名汇总和对比图表
 - **可视化分析** — 训练曲线图、定量指标（PSNR）、视觉对比图
 - **GUI 演示系统** — 图形界面一键超分辨率
 

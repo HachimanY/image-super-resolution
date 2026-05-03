@@ -219,7 +219,10 @@ def plot_training_curves(history_path, save_path=None):
     ax2.grid(True, alpha=0.3)
 
     config = history.get('config', {})
-    fig.suptitle(f"lr={config.get('lr', '?')}, batch={config.get('batch_size', '?')}, "
+    base = os.path.basename(history_path)
+    exp_id = base[4:].split('.')[0] if base.startswith('exp_') else ''
+    prefix = f'Exp {exp_id} | ' if exp_id != '' else ''
+    fig.suptitle(f"{prefix}lr={config.get('lr', '?')}, batch={config.get('batch_size', '?')}, "
                  f"best_psnr={history.get('best_psnr', '?'):.2f}dB @ epoch {history.get('best_epoch', '?')}",
                  fontsize=11)
     plt.tight_layout()
@@ -280,7 +283,12 @@ def compare_experiments(history_paths, save_path='./experiment_comparison.png'):
         with open(hp, 'r') as f:
             h = json.load(f)
         config = h.get('config', {})
-        label = f"lr={config.get('lr')}, bs={config.get('batch_size')}"
+        base = os.path.basename(hp)
+        exp_id = ''
+        if base.startswith('exp_'):
+            exp_id = base[4:].split('.')[0]
+        prefix = f'Exp {exp_id}: ' if exp_id != '' else ''
+        label = f"{prefix}lr={config.get('lr')}, bs={config.get('batch_size')}"
         results.append({
             'label': label,
             'best_psnr': h.get('best_psnr', 0),
@@ -312,7 +320,7 @@ def compare_experiments(history_paths, save_path='./experiment_comparison.png'):
     print(f'Experiment comparison saved to {save_path}')
 
     print('\n' + '=' * 60)
-    print(f'{"Config":<40} {"Best PSNR":>10} {"Best Epoch":>11}')
+    print(f'{"Label":<40} {"Best PSNR":>10} {"Best Epoch":>11}')
     print('=' * 60)
     for r in sorted(results, key=lambda x: x['best_psnr'], reverse=True):
         print(f'{r["label"]:<40} {r["best_psnr"]:>10.2f} {r["best_epoch"]:>11}')

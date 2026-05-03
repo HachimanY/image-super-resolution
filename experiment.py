@@ -42,6 +42,43 @@ def run_single_experiment(exp, index, output_dir):
     return history_path
 
 
+def plot_only(output_dir):
+    """Read existing experiment JSON files and generate charts + summary."""
+    import glob as glob_mod
+    pattern = os.path.join(output_dir, 'exp_*.json')
+    files = sorted(glob_mod.glob(pattern))
+    if not files:
+        print(f'No experiment JSON files found in {output_dir}')
+        return
+
+    print(f'Found {len(files)} experiment files:')
+    for f in files:
+        print(f'  {f}')
+
+    # Generate individual training curves
+    for hp in files:
+        plot_training_curves(hp)
+
+    # Generate comparison chart
+    compare_experiments(files, save_path=os.path.join(output_dir, 'comparison.png'))
+
+    # Print summary
+    print('\n' + '=' * 70)
+    print('EXPERIMENT RESULTS SUMMARY')
+    print('=' * 70)
+    print(f'{"#":<4} {"Config":<35} {"Best PSNR":>10} {"Best Epoch":>11}')
+    print('-' * 70)
+    for hp in files:
+        with open(hp, 'r') as f:
+            h = json.load(f)
+        config = h.get('config', {})
+        base = os.path.basename(hp)
+        exp_id = base.replace('exp_', '').replace('.json', '')
+        label = f"lr={config.get('lr')}, bs={config.get('batch_size')}"
+        print(f'{exp_id:<4} {label:<35} {h["best_psnr"]:>10.2f} {h["best_epoch"]:>11}')
+    print('=' * 70)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Run parameter comparison experiments')
     parser.add_argument('--output-dir', default='./experiments', type=str,
@@ -50,7 +87,13 @@ def main():
                         help='override epoch count for all experiments')
     parser.add_argument('--quick', action='store_true',
                         help='run a quick set of experiments (fewer epochs)')
+    parser.add_argument('--plot-only', action='store_true',
+                        help='skip training, only generate charts from existing data')
     args = parser.parse_args()
+
+    if args.plot_only:
+        plot_only(args.output_dir)
+        return
 
     os.makedirs(args.output_dir, exist_ok=True)
 

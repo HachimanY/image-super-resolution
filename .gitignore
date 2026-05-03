@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+datasets/*.h5
+experiments/
+model/*.pth

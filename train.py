@@ -22,12 +22,18 @@ def default_argument_parser():
     parser.add_argument('--model-dir', default='./model', type=str)
     parser.add_argument('--save-history', default='./model/train_history.json', type=str,
                         help='path to save training history JSON')
+    parser.add_argument('--save-epochs', default='', type=str,
+                        help='comma-separated epoch numbers to save checkpoints, e.g. "10,30,50,100"')
     return parser
 
 
 def main(args):
     args.train_file = f'./datasets/91-image_x{args.train_file}.h5'
     args.eval_file = f'./datasets/Set5_x{args.eval_file}.h5'
+    save_epochs = set()
+    if args.save_epochs:
+        save_epochs = {int(e.strip()) for e in args.save_epochs.split(',')}
+    os.makedirs(args.model_dir, exist_ok=True)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     cudnn.benchmark = True
@@ -72,6 +78,11 @@ def main(args):
                 best_epoch = epoch
                 best_psnr = PSNR
                 best_weights = copy.deepcopy(model.state_dict())
+
+        if epoch in save_epochs:
+            ckpt_path = f'{args.model_dir}/epoch_{epoch}.pth'
+            torch.save(model.state_dict(), ckpt_path)
+            print(f'Checkpoint saved: {ckpt_path}')
 
     torch.save(best_weights, f'{args.model_dir}/best.pth')
 

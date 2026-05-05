@@ -61,6 +61,7 @@ image-super-resolution/
   train.py          ← 训练入口
   use.py            ← 推理入口（支持 --compare 生成对比图）
   experiment.py     ← 参数对比实验脚本
+  compare_psnr.py   ← 不同 PSNR 等级对比图生成
   demo.py           ← GUI 演示系统
   model.py          ← SRCNN 网络定义（3层卷积）
   datasets.py       ← HDF5 数据集加载
@@ -120,7 +121,8 @@ python train.py \
   --num-workers 8 \
   --epoch 500 \
   --f 10 \
-  --save-history ./model/train_history.json
+  --save-history ./model/train_history.json \
+  --save-epochs 50,100,200,500
 ```
 
 ### 5.3 训练参数说明
@@ -136,10 +138,22 @@ python train.py \
 | `--f` | 5 | 每隔多少轮测试一次 |
 | `--model-dir` | `./model` | 模型保存目录 |
 | `--save-history` | `./model/train_history.json` | 训练历史保存路径 |
+| `--save-epochs` | 空 | 指定保存 checkpoint 的 epoch，逗号分隔，如 `"10,30,50,100"` |
 
-### 5.4 训练输出
+### 5.4 保存中间 checkpoint
+
+训练时可通过 `--save-epochs` 在指定 epoch 保存模型权重，用于后续不同训练阶段的 PSNR 对比：
+
+```bash
+python train.py --epoch 100 --save-epochs 10,30,50,100
+```
+
+将在 `./model/` 下生成 `epoch_10.pth`、`epoch_30.pth`、`epoch_50.pth`、`epoch_100.pth`。
+
+### 5.5 训练输出
 
 - 最佳模型权重：`./model/best.pth`
+- 中间 checkpoint：`./model/epoch_{N}.pth`（使用 `--save-epochs` 时）
 - 训练历史记录：`./model/train_history.json`（包含每轮 loss 和 PSNR）
 
 ---
@@ -275,7 +289,56 @@ python use.py --image path/to/image.jpg --scale 2 --compare
 
 ---
 
-## 九、GUI 演示系统
+## 九、PSNR 对比图生成
+
+使用 `compare_psnr.py` 可以将不同训练阶段（不同 PSNR）的超分辨率结果并排展示，直观对比训练进度对重建质量的影响。
+
+### 9.1 使用方法
+
+```bash
+# 自动发现 model/ 下所有 epoch_*.pth，按 PSNR 从低到高排列
+python compare_psnr.py --image test.png --scale 2
+
+# 手动指定 checkpoint 文件
+python compare_psnr.py --image test.png --checkpoints epoch_10.pth,epoch_30.pth,epoch_100.pth
+
+# 生成局部放大细节对比（裁剪区域: x=100, y=50, 宽=80, 高=80）
+python compare_psnr.py --image test.png --crop-region 100,50,80,80
+```
+
+### 9.2 完整流程示例
+
+```bash
+# 第一步：训练时保存多个 checkpoint
+python train.py --epoch 100 --save-epochs 10,30,50,100
+
+# 第二步：生成 PSNR 对比图
+python compare_psnr.py --image test.png --scale 2
+```
+
+### 9.3 参数说明
+
+| 参数 | 默认值 | 说明 |
+| ---- | ------ | ---- |
+| `--image` | （必填） | 输入测试图片路径 |
+| `--scale` | 2 | 放大倍数 |
+| `--checkpoints-dir` | `./model` | checkpoint 目录 |
+| `--checkpoints` | 空 | 手动指定 checkpoint 文件名，逗号分隔（覆盖 `--checkpoints-dir` 自动发现） |
+| `--save-path` | 自动生成 | 输出对比图路径 |
+| `--crop-region` | 空 | 裁剪区域 `"x,y,w,h"`，生成局部细节对比图 |
+
+### 9.4 输出
+
+| 文件 | 说明 |
+| ---- | ---- |
+| `*_psnr_comparison.png` | 完图对比（含 Bicubic 基线 + 各 epoch SR 结果） |
+| `*_psnr_comparison_detail.png` | 局部细节对比（使用 `--crop-region` 时生成） |
+
+每列标注对应的 epoch 和 PSNR 值，效果随训练推进逐步提升，直观展示 PSNR 与视觉质量的关系。
+
+---
+
+## 十、GUI 演示系统
 
 ```bash
 python demo.py
@@ -291,7 +354,7 @@ python demo.py
 
 ---
 
-## 十、常见问题
+## 十一、常见问题
 
 ### OSError: Unable to open file（HDF5 文件锁错误）
 
@@ -316,7 +379,7 @@ python train.py --num-workers 0
 
 ---
 
-## 十一、总结
+## 十二、总结
 
 本项目实现了完整的图像超分辨率处理流程，包含：
 
